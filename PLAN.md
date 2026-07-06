@@ -671,33 +671,77 @@ Create a `homebrew-tap` repo with a formula that downloads the prebuilt binary f
 
 ## Implementation Order
 
-An implementing agent should follow this order, completing and testing each step before moving to the next:
+1. ~~**Scaffold** — `cargo init`, add dependencies to `Cargo.toml`, set up `src/` structure with empty modules~~ ✅
+2. ~~**`db.rs`** — schema creation, open with migrations, load functions.~~ ✅
+3. ~~**`reasons init`** — first working command.~~ ✅
+4. ~~**`reasons status`** — read-only summary.~~ ✅
+5. ~~**`reasons show`** — load node + justifications + dependents.~~ ✅
+6. ~~**`reasons explain`** — recursive justification trace.~~ ✅
+7. ~~**`reasons search`** — FTS5 with stop words, relaxation, neighbor expansion.~~ ✅
+8. ~~**`reasons lookup`** — substring search.~~ ✅
+9. ~~**`reasons list`** — filtered listing with all flag combinations.~~ ✅
+10. ~~**`reasons tree`** — tree visualization.~~ ✅
+11. ~~**`reasons export`** — JSON export.~~ ✅
+12. ~~**`reasons export-markdown`** — beliefs.md export.~~ ✅
+13. ~~**`tms.rs`** — propagation engine, justification validity, retraction, assertion.~~ ✅
+14. ~~**`reasons add`** — first write command.~~ ✅
+15. ~~**`reasons add-justification`** / **`reasons remove-justification`**~~ ✅
+16. ~~**`reasons retract`** / **`reasons assert`** — with cascade verification.~~ ✅
+17. ~~**`reasons import-beliefs`** / **`reasons import-json`** — parse and load.~~ ✅
+18. ~~**`reasons update`** / **`reasons set-metadata`** / **`reasons get-metadata`**~~ ✅
+19. ~~**`reasons challenge`** / **`reasons defend`** / **`reasons supersede`**~~ ✅
+20. ~~**`reasons nogood`** / **`reasons find-culprits`** — with entrenchment scoring and backtracking.~~ ✅
+21. ~~**`reasons propagate`** — force full recompute.~~ ✅
+22. ~~**`reasons trace`** / **`reasons convert-to-premise`**~~ ✅
+23. ~~**`reasons log`** — propagation log display.~~ ✅
+24. **`reasons mcp`** — MCP server mode via rmcp. ⬜ Not started
+25. **GitHub Actions release pipeline** — cross-platform builds on tag push. ⬜ Not started
 
-1. **Scaffold** — `cargo init`, add dependencies to `Cargo.toml`, set up `src/` structure with empty modules
-2. **`db.rs`** — schema creation, open with migrations, load functions. Test: create a DB, load a known fixture.
-3. **`reasons init`** — first working command. Test: creates a valid `reasons.db`.
-4. **`reasons status`** — read-only summary. Test against a fixture DB.
-5. **`reasons show`** — load node + justifications + dependents. Test: matches Python output.
-6. **`reasons explain`** — recursive justification trace. Test: IN and OUT cases, circular deps.
-7. **`reasons search`** — FTS5 with stop words, relaxation, neighbor expansion. Test: known queries against fixture.
-8. **`reasons lookup`** — substring search. Simple.
-9. **`reasons list`** — filtered listing with all flag combinations.
-10. **`reasons tree`** — tree visualization. Test: up/down/both, depth limits, cycles.
-11. **`reasons export`** — JSON export. Test: round-trip with Python's import.
-12. **`reasons export-markdown`** — beliefs.md export. Test: round-trip.
-13. **`tms.rs`** — propagation engine, justification validity, retraction, assertion. Unit test heavily.
-14. **`reasons add`** — first write command. Test: add + show round-trip.
-15. **`reasons add-justification`** / **`reasons remove-justification`**
-16. **`reasons retract`** / **`reasons assert`** — with cascade verification.
-17. **`reasons import-beliefs`** / **`reasons import-json`** — parse and load.
-18. **`reasons update`** / **`reasons set-metadata`** / **`reasons get-metadata`**
-19. **`reasons challenge`** / **`reasons defend`** / **`reasons supersede`**
-20. **`reasons nogood`** / **`reasons find-culprits`** — with entrenchment scoring and backtracking.
-21. **`reasons propagate`** — force full recompute.
-22. **`reasons trace`** / **`reasons convert-to-premise`**
-23. **`reasons log`** — propagation log display.
-24. **`reasons mcp`** — MCP server mode via rmcp.
-25. **GitHub Actions release pipeline** — cross-platform builds on tag push.
+---
+
+## Implementation Status
+
+**Phase 1 (Core Engine + Query Commands):** ✅ Complete
+**Phase 2 (Write Operations + TMS Engine):** ✅ Complete
+**Phase 3 (MCP Server Mode):** ⬜ Not started
+**Build & Release:** ⬜ Not started
+
+### What was built
+
+All 30 CLI commands implemented across 16 source files (3,612 lines of Rust):
+
+| Module | File | Commands |
+|--------|------|----------|
+| Types | `src/types.rs` | `Node`, `Justification`, `Nogood` structs |
+| Database | `src/db.rs` | SQLite schema, migrations, CRUD, FTS5 |
+| TMS Engine | `src/tms.rs` | `Network` with propagation, justification validity, retraction/assertion cascades, entrenchment scoring, culprit finding, fixpoint recomputation |
+| Formatting | `src/format.rs` | `truncate`, `format_node_line`, `format_node_detail`, JSON/minimal formatters |
+| Management | `src/commands/manage.rs` | `init`, `status`, `log`, `propagate`, `update`, `set-metadata`, `get-metadata`, `trace`, `convert-to-premise` |
+| Query | `src/commands/query.rs` | `show`, `explain`, `search` (FTS5 + progressive relaxation + neighbor expansion), `lookup`, `list` |
+| Tree | `src/commands/tree.rs` | `tree` (up/down/both, depth limits, Unicode box-drawing) — **NEW, not in Python** |
+| Export | `src/commands/export.rs` | `export` (JSON), `export-markdown` (beliefs.md) |
+| Add | `src/commands/add.rs` | `add`, `add-justification`, `remove-justification` |
+| Retract | `src/commands/retract.rs` | `retract` (with cascade), `assert` (with restoration) |
+| Challenge | `src/commands/challenge.rs` | `challenge`, `defend`, `supersede` |
+| Nogood | `src/commands/nogood.rs` | `nogood` (with dependency-directed backtracking), `find-culprits` |
+| Import | `src/commands/import.rs` | `import-beliefs`, `import-json` |
+| CLI | `src/main.rs` | clap derive API, all subcommands wired |
+
+### Test suite (87 tests, all passing)
+
+| Location | Count | Coverage |
+|----------|-------|----------|
+| `src/tms.rs` | 31 | Justification validity (6 cases incl. asymmetry), truth computation (4), propagation (3 incl. skip-retracted), retract/assert round-trip (3), add/remove justification (4), recompute fixpoint (2), entrenchment scoring (5), premise tracing (3), culprit finding (1) |
+| `src/db.rs` | 16 | All CRUD round-trips, FTS search, substring search, propagation log, metadata, node counts, repos, delete |
+| `src/format.rs` | 11 | Truncation edge cases, node line/detail formatting, minimal output |
+| `src/types.rs` | 7 | Node constructors, is_premise, beliefs_type fallback logic, Justification::new_sl |
+| `tests/integration.rs` | 22 | Full CLI lifecycle via subprocess: init, add/show, explain, retract cascade + restore, search, lookup, list filters, tree up/down, JSON round-trip, markdown round-trip, challenge/defend, supersede, nogood backtracking, find-culprits, update, metadata, propagate, trace, convert-to-premise, log, status |
+
+### Binary characteristics
+
+- **Size:** 2.7MB static binary (release build with LTO + strip)
+- **Dependencies:** Zero runtime dependencies (SQLite bundled via rusqlite)
+- **Compatibility:** Reads and writes the same `reasons.db` schema as the Python version
 
 ---
 

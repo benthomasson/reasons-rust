@@ -83,3 +83,65 @@ pub struct Nogood {
     pub discovered: String,
     pub resolution: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn node_new_defaults() {
+        let n = Node::new("test".to_string(), "text".to_string());
+        assert_eq!(n.id, "test");
+        assert_eq!(n.text, "text");
+        assert_eq!(n.truth_value, "IN");
+        assert!(!n.created_at.is_empty());
+        assert!(!n.updated_at.is_empty());
+    }
+
+    #[test]
+    fn is_premise_true_when_zero() {
+        let n = Node::new("x".to_string(), "t".to_string());
+        assert!(n.is_premise(0));
+    }
+
+    #[test]
+    fn is_premise_false_when_nonzero() {
+        let n = Node::new("x".to_string(), "t".to_string());
+        assert!(!n.is_premise(1));
+    }
+
+    #[test]
+    fn beliefs_type_from_metadata() {
+        let mut n = Node::new("x".to_string(), "t".to_string());
+        n.metadata = serde_json::json!({"beliefs_type": "AXIOM"});
+        assert_eq!(n.beliefs_type(0), "AXIOM");
+    }
+
+    #[test]
+    fn beliefs_type_derived_when_has_justifications() {
+        let n = Node::new("x".to_string(), "t".to_string());
+        assert_eq!(n.beliefs_type(3), "DERIVED");
+    }
+
+    #[test]
+    fn beliefs_type_observation_when_premise() {
+        let n = Node::new("x".to_string(), "t".to_string());
+        assert_eq!(n.beliefs_type(0), "OBSERVATION");
+    }
+
+    #[test]
+    fn justification_new_sl() {
+        let j = Justification::new_sl(
+            "node".to_string(),
+            vec!["a".to_string()],
+            vec!["b".to_string()],
+            "label".to_string(),
+        );
+        assert_eq!(j.jtype, "SL");
+        assert_eq!(j.rowid, 0);
+        assert_eq!(j.node_id, "node");
+        assert_eq!(j.antecedents, vec!["a"]);
+        assert_eq!(j.outlist, vec!["b"]);
+        assert_eq!(j.label, "label");
+    }
+}

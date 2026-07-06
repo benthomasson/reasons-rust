@@ -398,3 +398,228 @@ pub fn delete_node(conn: &Connection, id: &str) -> Result<()> {
     conn.execute("DELETE FROM nodes WHERE id = ?1", params![id])?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{Node, Justification, Nogood};
+
+    fn test_db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        set_pragmas(&conn).unwrap();
+        conn.execute_batch(SCHEMA_SQL).unwrap();
+        conn.execute_batch(FTS_SQL).unwrap();
+        conn
+    }
+
+    fn sample_node(id: &str, text: &str) -> Node {
+        Node::new(id.to_string(), text.to_string())
+    }
+
+    #[test]
+    fn empty_db_counts() {
+        let conn = test_db();
+        assert_eq!(node_count(&conn).unwrap(), (0, 0));
+        assert_eq!(nogood_count(&conn).unwrap(), 0);
+        assert!(load_all_nodes(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn save_and_load_node_round_trip() {
+        let conn = test_db();
+        let mut node = sample_node("test-1", "Test belief");
+        node.source = "doc.md".to_string();
+        node.source_url = "https://example.com".to_string();
+        node.source_hash = "abc123".to_string();
+
+        save_node(&conn, &node).unwrap();
+        let loaded = load_node(&conn, "test-1").unwrap().unwrap();
+
+        assert_eq!(loaded.id, "test-1");
+        assert_eq!(loaded.text, "Test belief");
+        assert_eq!(loaded.truth_value, "IN");
+        assert_eq!(loaded.source, "doc.md");
+        assert_eq!(loaded.source_url, "https://example.com");
+        assert_eq!(loaded.source_hash, "abc123");
+    }
+
+    #[test]
+    fn load_nonexistent_node_returns_none() {
+        let conn = test_db();
+        assert!(load_node(&conn, "nope").unwrap().is_none());
+    }
+
+    #[test]
+    fn save_and_load_justification_round_trip() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("a", "A")).unwrap();
+        save_node(&conn, &sample_node("b", "B")).unwrap();
+        save_node(&conn, &sample_node("c", "C")).unwrap();
+
+        let j = Justification::new_sl(
+            "c".to_string(),
+            vec!["a".to_string(), "b".to_string()],
+            vec!["blocker".to_string()],
+            "my-label".to_string(),
+        );
+        let rowid = save_justification(&conn, &j).unwrap();
+        assert!(rowid > 0);
+
+        let loaded = load_justifications(&conn, "c").unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].jtype, "SL");
+        assert_eq!(loaded[0].antecedents, vec!["a", "b"]);
+        assert_eq!(loaded[0].outlist, vec!["blocker"]);
+        assert_eq!(loaded[0].label, "my-label");
+    }
+
+    #[test]
+    fn load_all_justifications() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("a", "A")).unwrap();
+        save_node(&conn, &sample_node("b", "B")).unwrap();
+
+        save_justification(&conn, &Justification::new_sl(
+            "a".to_string(), vec![], vec![], String::new(),
+        )).unwrap();
+        save_justification(&conn, &Justification::new_sl(
+            "b".to_string(), vec!["a".to_string()], vec![], String::new(),
+        )).unwrap();
+
+        let all = super::load_all_justifications(&conn).unwrap();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
+    fn delete_justification_removes_it() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("a", "A")).unwrap();
+        let rowid = save_justification(&conn, &Justification::new_sl(
+            "a".to_string(), vec![], vec![], String::new(),
+        )).unwrap();
+
+        assert_eq!(load_justifications(&conn, "a").unwrap().len(), 1);
+        super::delete_justification(&conn, rowid).unwrap();
+        assert_eq!(load_justifications(&conn, "a").unwrap().len(), 0);
+    }
+
+    #[test]
+    fn update_node_truth_changes_value() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("a", "A")).unwrap();
+
+        update_node_truth(&conn, "a", "OUT").unwrap();
+        let loaded = load_node(&conn, "a").unwrap().unwrap();
+        assert_eq!(loaded.truth_value, "OUT");
+    }
+
+    #[test]
+    fn update_node_metadata_round_trip() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("a", "A")).unwrap();
+
+        let meta = serde_json::json!({"key": "value", "num": 42});
+        update_node_metadata(&conn, "a", &meta).unwrap();
+
+        let loaded = load_node(&conn, "a").unwrap().unwrap();
+        assert_eq!(loaded.metadata["key"], "value");
+        assert_eq!(loaded.metadata["num"], 42);
+    }
+
+    #[test]
+    fn save_and_load_nogood_round_trip() {
+        let conn = test_db();
+        let ng = Nogood {
+            id: "nogood-001".to_string(),
+            nodes: vec!["a".to_string(), "b".to_string()],
+            discovered: "2026-01-01".to_string(),
+            resolution: "retracted a".to_string(),
+        };
+        save_nogood(&conn, &ng).unwrap();
+
+        let loaded = load_nogoods(&conn).unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].id, "nogood-001");
+        assert_eq!(loaded[0].nodes, vec!["a", "b"]);
+        assert_eq!(loaded[0].resolution, "retracted a");
+    }
+
+    #[test]
+    fn set_and_load_meta() {
+        let conn = test_db();
+        set_meta(&conn, "project_name", "test-project").unwrap();
+        assert_eq!(load_meta(&conn, "project_name").unwrap().unwrap(), "test-project");
+        assert!(load_meta(&conn, "missing").unwrap().is_none());
+    }
+
+    #[test]
+    fn fts_search_finds_nodes() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("cat-fact", "Cats sleep 16 hours a day")).unwrap();
+        save_node(&conn, &sample_node("dog-fact", "Dogs are loyal companions")).unwrap();
+        rebuild_fts(&conn).unwrap();
+
+        let results = fts_search(&conn, "\"cats\" \"sleep\"", 10).unwrap();
+        assert_eq!(results, vec!["cat-fact"]);
+    }
+
+    #[test]
+    fn substring_search_matches_text_and_id() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("alpha-node", "Some text here")).unwrap();
+        save_node(&conn, &sample_node("beta-node", "Alpha is mentioned")).unwrap();
+
+        let by_id = substring_search(&conn, "alpha", 10).unwrap();
+        assert!(by_id.contains(&"alpha-node".to_string()));
+
+        let by_text = substring_search(&conn, "mentioned", 10).unwrap();
+        assert!(by_text.contains(&"beta-node".to_string()));
+    }
+
+    #[test]
+    fn node_count_tracks_in_out() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("a", "A")).unwrap();
+        let mut b = sample_node("b", "B");
+        b.truth_value = "OUT".to_string();
+        save_node(&conn, &b).unwrap();
+
+        let (total, in_count) = node_count(&conn).unwrap();
+        assert_eq!(total, 2);
+        assert_eq!(in_count, 1);
+    }
+
+    #[test]
+    fn propagation_log_round_trip() {
+        let conn = test_db();
+        log_propagation(&conn, "retract", "node-1", "OUT").unwrap();
+        log_propagation(&conn, "propagate", "node-2", "OUT").unwrap();
+
+        let entries = load_propagation_log(&conn, 10).unwrap();
+        assert_eq!(entries.len(), 2);
+        // Most recent first
+        assert_eq!(entries[0].1, "propagate");
+        assert_eq!(entries[1].1, "retract");
+    }
+
+    #[test]
+    fn load_repos_round_trip() {
+        let conn = test_db();
+        conn.execute("INSERT INTO repos (name, path) VALUES ('myrepo', '/path/to/repo')", []).unwrap();
+        let repos = load_repos(&conn).unwrap();
+        assert_eq!(repos.get("myrepo").unwrap(), "/path/to/repo");
+    }
+
+    #[test]
+    fn delete_node_removes_node_and_justifications() {
+        let conn = test_db();
+        save_node(&conn, &sample_node("a", "A")).unwrap();
+        save_justification(&conn, &Justification::new_sl(
+            "a".to_string(), vec![], vec![], String::new(),
+        )).unwrap();
+
+        delete_node(&conn, "a").unwrap();
+        assert!(load_node(&conn, "a").unwrap().is_none());
+        assert!(load_justifications(&conn, "a").unwrap().is_empty());
+    }
+}
