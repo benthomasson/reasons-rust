@@ -6,6 +6,13 @@ Rust port of [ftl-reasons](https://github.com/benthomasson/ftl-reasons). Single 
 
 ## Install
 
+### Homebrew
+
+```bash
+brew tap benthomasson/tap
+brew install reasons
+```
+
 ### From source
 
 ```bash
