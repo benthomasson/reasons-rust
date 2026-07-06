@@ -9,7 +9,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "reasons", about = "Truth Maintenance System for managing justified beliefs", version)]
+#[command(name = "reasons", about = "Truth Maintenance System for managing justified beliefs", version = concat!("(rust) ", env!("CARGO_PKG_VERSION")))]
 struct Cli {
     #[arg(long, default_value = "reasons.db", global = true)]
     db: PathBuf,
@@ -222,12 +222,154 @@ enum Commands {
 
     /// Run as MCP server over stdio transport
     Mcp,
+
+    // --- Stubs: available in ftl-reasons (Python), require LLM / API keys ---
+
+    #[command(hide = true)]
+    Ask { query: String },
+    #[command(hide = true)]
+    Derive,
+    #[command(hide = true)]
+    Accept { file: PathBuf },
+    #[command(hide = true)]
+    Summarize { node_ids: Vec<String> },
+    #[command(hide = true)]
+    Compact,
+    #[command(hide = true)]
+    Deduplicate,
+    #[command(name = "cluster-list", hide = true)]
+    ClusterList,
+    #[command(hide = true)]
+    Verify { node_ids: Vec<String> },
+    #[command(name = "list-negative", hide = true)]
+    ListNegative,
+    #[command(name = "review-beliefs", hide = true)]
+    ReviewBeliefs,
+    #[command(name = "review-justifications", hide = true)]
+    ReviewJustifications,
+    #[command(name = "review-premises", hide = true)]
+    ReviewPremises,
+    #[command(name = "repair-premises", hide = true)]
+    RepairPremises,
+    #[command(name = "propose-update", hide = true)]
+    ProposeUpdate { node_id: String },
+    #[command(name = "repair-smuggled", hide = true)]
+    RepairSmuggled,
+    #[command(hide = true)]
+    Repair,
+    #[command(hide = true)]
+    Research,
+    #[command(hide = true)]
+    Contradictions,
+    #[command(hide = true)]
+    Report { node_id: String },
+    #[command(name = "report-gated", hide = true)]
+    ReportGated,
+
+    // --- Stubs: external services ---
+
+    #[command(name = "import-api", hide = true)]
+    ImportApi,
+    #[command(name = "export-api", hide = true)]
+    ExportApi,
+    #[command(name = "import-hf", hide = true)]
+    ImportHf { repo: String },
+    #[command(hide = true)]
+    Pull { name: String },
+    #[command(hide = true)]
+    Publish,
+    #[command(name = "import-agent", hide = true)]
+    ImportAgent { agent: String },
+    #[command(name = "sync-agent", hide = true)]
+    SyncAgent { agent: String },
+
+    // --- Stubs: source pinning / other ---
+
+    #[command(name = "what-if", hide = true)]
+    WhatIf { node_id: String },
+    #[command(name = "add-repo", hide = true)]
+    AddRepo { name: String, path: PathBuf },
+    #[command(hide = true)]
+    Repos,
+    #[command(name = "trace-access-tags", hide = true)]
+    TraceAccessTags { node_id: String },
+    #[command(name = "export-card", hide = true)]
+    ExportCard,
+    #[command(name = "hash-sources", hide = true)]
+    HashSources,
+    #[command(name = "check-stale", hide = true)]
+    CheckStale,
+    #[command(name = "pin-sources", hide = true)]
+    PinSources { node_ids: Vec<String> },
+    #[command(name = "pin-update", hide = true)]
+    PinUpdate { node_ids: Vec<String> },
+    #[command(name = "pin-lines", hide = true)]
+    PinLines { node_id: String },
+    #[command(name = "search-sources", hide = true)]
+    SearchSources { query: String },
+    #[command(name = "list-gated", hide = true)]
+    ListGated,
+    #[command(hide = true)]
+    Namespaces,
+    #[command(hide = true)]
+    Topics,
+    #[command(name = "build-wiki", hide = true)]
+    BuildWiki,
+}
+
+fn not_available(command: &str) {
+    eprintln!("Warning: `reasons {}` is not available in reasons-rust.", command);
+    eprintln!("This command requires Claude Code, Gemini CLI, or API keys.");
+    eprintln!("Use the full ftl-reasons (Python) instead: pip install ftl-reasons");
 }
 
 fn main() {
     let cli = Cli::parse();
 
     let result = match &cli.command {
+        Commands::Ask { .. } => { not_available("ask"); Ok(()) }
+        Commands::Derive => { not_available("derive"); Ok(()) }
+        Commands::Accept { .. } => { not_available("accept"); Ok(()) }
+        Commands::Summarize { .. } => { not_available("summarize"); Ok(()) }
+        Commands::Compact => { not_available("compact"); Ok(()) }
+        Commands::Deduplicate => { not_available("deduplicate"); Ok(()) }
+        Commands::ClusterList => { not_available("cluster-list"); Ok(()) }
+        Commands::Verify { .. } => { not_available("verify"); Ok(()) }
+        Commands::ListNegative => { not_available("list-negative"); Ok(()) }
+        Commands::ReviewBeliefs => { not_available("review-beliefs"); Ok(()) }
+        Commands::ReviewJustifications => { not_available("review-justifications"); Ok(()) }
+        Commands::ReviewPremises => { not_available("review-premises"); Ok(()) }
+        Commands::RepairPremises => { not_available("repair-premises"); Ok(()) }
+        Commands::ProposeUpdate { .. } => { not_available("propose-update"); Ok(()) }
+        Commands::RepairSmuggled => { not_available("repair-smuggled"); Ok(()) }
+        Commands::Repair => { not_available("repair"); Ok(()) }
+        Commands::Research => { not_available("research"); Ok(()) }
+        Commands::Contradictions => { not_available("contradictions"); Ok(()) }
+        Commands::Report { .. } => { not_available("report"); Ok(()) }
+        Commands::ReportGated => { not_available("report-gated"); Ok(()) }
+        Commands::ImportApi => { not_available("import-api"); Ok(()) }
+        Commands::ExportApi => { not_available("export-api"); Ok(()) }
+        Commands::ImportHf { .. } => { not_available("import-hf"); Ok(()) }
+        Commands::Pull { .. } => { not_available("pull"); Ok(()) }
+        Commands::Publish => { not_available("publish"); Ok(()) }
+        Commands::ImportAgent { .. } => { not_available("import-agent"); Ok(()) }
+        Commands::SyncAgent { .. } => { not_available("sync-agent"); Ok(()) }
+        Commands::WhatIf { .. } => { not_available("what-if"); Ok(()) }
+        Commands::AddRepo { .. } => { not_available("add-repo"); Ok(()) }
+        Commands::Repos => { not_available("repos"); Ok(()) }
+        Commands::TraceAccessTags { .. } => { not_available("trace-access-tags"); Ok(()) }
+        Commands::ExportCard => { not_available("export-card"); Ok(()) }
+        Commands::HashSources => { not_available("hash-sources"); Ok(()) }
+        Commands::CheckStale => { not_available("check-stale"); Ok(()) }
+        Commands::PinSources { .. } => { not_available("pin-sources"); Ok(()) }
+        Commands::PinUpdate { .. } => { not_available("pin-update"); Ok(()) }
+        Commands::PinLines { .. } => { not_available("pin-lines"); Ok(()) }
+        Commands::SearchSources { .. } => { not_available("search-sources"); Ok(()) }
+        Commands::ListGated => { not_available("list-gated"); Ok(()) }
+        Commands::Namespaces => { not_available("namespaces"); Ok(()) }
+        Commands::Topics => { not_available("topics"); Ok(()) }
+        Commands::BuildWiki => { not_available("build-wiki"); Ok(()) }
+
         Commands::Init => commands::manage::cmd_init(&cli.db),
 
         Commands::Mcp => {
@@ -319,6 +461,7 @@ fn main() {
                     commands::manage::cmd_convert_to_premise(&conn, node_id)
                 }
                 Commands::Log { limit } => commands::manage::cmd_log(&conn, *limit),
+                _ => unreachable!(),
             }
         }
     };
