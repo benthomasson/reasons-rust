@@ -694,7 +694,7 @@ Create a `homebrew-tap` repo with a formula that downloads the prebuilt binary f
 21. ~~**`reasons propagate`** — force full recompute.~~ ✅
 22. ~~**`reasons trace`** / **`reasons convert-to-premise`**~~ ✅
 23. ~~**`reasons log`** — propagation log display.~~ ✅
-24. **`reasons mcp`** — MCP server mode via rmcp. ⬜ Not started
+24. ~~**`reasons mcp`** — MCP server mode via rmcp.~~ ✅
 25. **GitHub Actions release pipeline** — cross-platform builds on tag push. ⬜ Not started
 
 ---
@@ -703,7 +703,7 @@ Create a `homebrew-tap` repo with a formula that downloads the prebuilt binary f
 
 **Phase 1 (Core Engine + Query Commands):** ✅ Complete
 **Phase 2 (Write Operations + TMS Engine):** ✅ Complete
-**Phase 3 (MCP Server Mode):** ⬜ Not started
+**Phase 3 (MCP Server Mode):** ✅ Complete
 **Build & Release:** ⬜ Not started
 
 ### What was built
@@ -725,6 +725,7 @@ All 30 CLI commands implemented across 16 source files (3,612 lines of Rust):
 | Challenge | `src/commands/challenge.rs` | `challenge`, `defend`, `supersede` |
 | Nogood | `src/commands/nogood.rs` | `nogood` (with dependency-directed backtracking), `find-culprits` |
 | Import | `src/commands/import.rs` | `import-beliefs`, `import-json` |
+| MCP | `src/mcp.rs` | MCP server mode via rmcp with 11 tools over stdio transport |
 | CLI | `src/main.rs` | clap derive API, all subcommands wired |
 
 ### Test suite (87 tests, all passing)

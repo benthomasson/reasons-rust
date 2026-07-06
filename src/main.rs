@@ -3,6 +3,7 @@ mod types;
 mod tms;
 mod format;
 mod commands;
+mod mcp;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -218,6 +219,9 @@ enum Commands {
         #[arg(long, default_value_t = 50)]
         limit: usize,
     },
+
+    /// Run as MCP server over stdio transport
+    Mcp,
 }
 
 fn main() {
@@ -225,6 +229,11 @@ fn main() {
 
     let result = match &cli.command {
         Commands::Init => commands::manage::cmd_init(&cli.db),
+
+        Commands::Mcp => {
+            let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+            rt.block_on(mcp::run_server(&cli.db))
+        }
 
         _ => {
             let conn = if cli.db.exists() {
@@ -241,7 +250,7 @@ fn main() {
             };
 
             match &cli.command {
-                Commands::Init => unreachable!(),
+                Commands::Init | Commands::Mcp => unreachable!(),
                 Commands::Status => commands::manage::cmd_status(&conn),
                 Commands::Show { node_id } => commands::query::cmd_show(&conn, node_id),
                 Commands::Explain { node_id } => commands::query::cmd_explain(&conn, node_id),
