@@ -701,7 +701,7 @@ Create a `homebrew-tap` repo with a formula that downloads the prebuilt binary f
 22. ~~**`reasons trace`** / **`reasons convert-to-premise`**~~ ✅
 23. ~~**`reasons log`** — propagation log display.~~ ✅
 24. ~~**`reasons mcp`** — MCP server mode via rmcp.~~ ✅
-25. **GitHub Actions release pipeline** — cross-platform builds on tag push. ⬜ Not started
+25. ~~**GitHub Actions release pipeline** — cross-platform builds on tag push.~~ ✅
 
 ---
 
@@ -710,7 +710,7 @@ Create a `homebrew-tap` repo with a formula that downloads the prebuilt binary f
 **Phase 1 (Core Engine + Query Commands):** ✅ Complete
 **Phase 2 (Write Operations + TMS Engine):** ✅ Complete
 **Phase 3 (MCP Server Mode):** ✅ Complete
-**Build & Release:** ⬜ Not started
+**Build & Release:** ✅ Complete (release pipeline; Homebrew tap is a separate repo)
 
 ### What was built
 
