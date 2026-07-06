@@ -595,7 +595,7 @@ Run as MCP server over stdio transport. This is the primary interface for Claude
 | `defend` | Defend against a challenge | Write |
 | `nogood` | Record contradiction | Write |
 
-**Implementation:** Use the `rmcp` crate (Rust MCP SDK) for stdio transport. Each tool maps directly to the corresponding CLI command logic.
+**Implementation:** Implemented in `src/mcp.rs` using the `rmcp` crate v2 (Rust MCP SDK) with `#[tool_router(server_handler)]` pattern. The `ReasonsServer` struct wraps the DB connection in `Arc<Mutex<Connection>>` and each tool method uses `tokio::task::spawn_blocking` for DB access (since `rusqlite::Connection` is not `Send`). Tool implementations compose directly from `db::*`, `tms::*`, and `format::*` functions — they do NOT call the `cmd_*` CLI wrappers (which print to stdout, which would corrupt the MCP JSON-RPC protocol).
 
 ---
 
@@ -643,7 +643,13 @@ clap = { version = "4", features = ["derive"] }
 rusqlite = { version = "0.31", features = ["bundled", "vtab"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+rmcp = { version = "2", features = ["server", "macros", "transport-io"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std"] }
+schemars = "1"
+
+[dev-dependencies]
+tempfile = "3"
 
 [profile.release]
 lto = true
@@ -708,7 +714,7 @@ Create a `homebrew-tap` repo with a formula that downloads the prebuilt binary f
 
 ### What was built
 
-All 30 CLI commands implemented across 16 source files (3,612 lines of Rust):
+All 30 CLI commands + MCP server implemented across 17 source files (4,717 lines of Rust):
 
 | Module | File | Commands |
 |--------|------|----------|
@@ -740,7 +746,7 @@ All 30 CLI commands implemented across 16 source files (3,612 lines of Rust):
 
 ### Binary characteristics
 
-- **Size:** 2.7MB static binary (release build with LTO + strip)
+- **Size:** 4.2MB static binary (release build with LTO + strip; includes MCP server + tokio runtime)
 - **Dependencies:** Zero runtime dependencies (SQLite bundled via rusqlite)
 - **Compatibility:** Reads and writes the same `reasons.db` schema as the Python version
 
