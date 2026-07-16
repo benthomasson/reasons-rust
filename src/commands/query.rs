@@ -164,6 +164,7 @@ pub fn cmd_search(
     query: &str,
     output_format: &str,
     depth: usize,
+    include_out: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let words: Vec<String> = query
         .split_whitespace()
@@ -211,8 +212,16 @@ pub fn cmd_search(
     let mut nodes = Vec::new();
     for id in &expanded {
         if let Some(node) = db::load_node(conn, id)? {
+            if !include_out && node.truth_value == "OUT" {
+                continue;
+            }
             nodes.push(node);
         }
+    }
+
+    if nodes.is_empty() {
+        println!("No results found.");
+        return Ok(());
     }
 
     match output_format {
@@ -276,7 +285,7 @@ fn expand_neighbors(
     Ok(result)
 }
 
-pub fn cmd_lookup(conn: &Connection, query: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn cmd_lookup(conn: &Connection, query: &str, include_out: bool) -> Result<(), Box<dyn std::error::Error>> {
     let ids = db::substring_search(conn, query, 20)?;
     if ids.is_empty() {
         println!("No results found.");
@@ -284,6 +293,9 @@ pub fn cmd_lookup(conn: &Connection, query: &str) -> Result<(), Box<dyn std::err
     }
     for id in &ids {
         if let Some(node) = db::load_node(conn, id)? {
+            if !include_out && node.truth_value == "OUT" {
+                continue;
+            }
             println!("[{}] {}: {}", node.truth_value, node.id, format::truncate(&node.text, 80));
         }
     }

@@ -43,11 +43,15 @@ enum Commands {
         format: String,
         #[arg(long, default_value_t = 1)]
         depth: usize,
+        #[arg(long)]
+        show_out: bool,
     },
 
     /// Simple substring search
     Lookup {
         query: String,
+        #[arg(long)]
+        show_out: bool,
     },
 
     /// List nodes with filters
@@ -396,10 +400,10 @@ fn main() {
                 Commands::Status => commands::manage::cmd_status(&conn),
                 Commands::Show { node_id } => commands::query::cmd_show(&conn, node_id),
                 Commands::Explain { node_id } => commands::query::cmd_explain(&conn, node_id),
-                Commands::Search { query, format, depth } => {
-                    commands::query::cmd_search(&conn, query, format, *depth)
+                Commands::Search { query, format, depth, show_out } => {
+                    commands::query::cmd_search(&conn, query, format, *depth, *show_out)
                 }
-                Commands::Lookup { query } => commands::query::cmd_lookup(&conn, query),
+                Commands::Lookup { query, show_out } => commands::query::cmd_lookup(&conn, query, *show_out),
                 Commands::List { status, premises, has_dependents, by_impact } => {
                     commands::query::cmd_list(&conn, status.as_deref(), *premises, *has_dependents, *by_impact)
                 }
